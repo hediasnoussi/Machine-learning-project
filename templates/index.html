@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Crypto - Prédiction ML</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e8ba3 100%);
+            min-height: 100vh;
+            padding: 30px 20px;
+            color: #2c3e50;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            padding: 30px 0;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header-text {
+            flex: 1;
+        }
+
+        .logout-btn {
+            background: rgba(255,255,255,0.15);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.2);
+            font-size: 0.95em;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255,255,255,0.25);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .header h1 {
+            font-size: 2.8em;
+            font-weight: 700;
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            font-weight: 300;
+            opacity: 0.95;
+            letter-spacing: 0.3px;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .form-container {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.05);
+            border: 1px solid rgba(255,255,255,0.2);
+            height: fit-content;
+            position: sticky;
+            top: 30px;
+        }
+
+        .form-container h2 {
+            color: #1e3c72;
+            margin-bottom: 24px;
+            font-size: 1.5em;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #34495e;
+            font-weight: 500;
+            font-size: 0.9em;
+            letter-spacing: 0.2px;
+            text-transform: uppercase;
+        }
+
+        .form-group select {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1.5px solid #e1e8ed;
+            border-radius: 10px;
+            font-size: 0.95em;
+            font-family: inherit;
+            background: #ffffff;
+            color: #2c3e50;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .form-group select:focus {
+            outline: none;
+            border-color: #2a5298;
+            box-shadow: 0 0 0 3px rgba(42, 82, 152, 0.1);
+        }
+
+        .form-group select:hover {
+            border-color: #b8c5d1;
+        }
+
+        .form-group small {
+            display: block;
+            margin-top: 6px;
+            color: #7f8c8d;
+            font-size: 0.8em;
+            font-weight: 400;
+            line-height: 1.4;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px 24px;
+            background: linear-gradient(135deg, #2a5298 0%, #1e3c72 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 8px;
+            letter-spacing: 0.3px;
+            box-shadow: 0 4px 12px rgba(42, 82, 152, 0.3);
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(42, 82, 152, 0.4);
+        }
+
+        .btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .results-container {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.05);
+            border: 1px solid rgba(255,255,255,0.2);
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .results-container.show {
+            display: block;
+        }
+
+        .results-container h2 {
+            color: #1e3c72;
+            margin-bottom: 32px;
+            font-size: 1.8em;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+            border-bottom: 2px solid #e1e8ed;
+            padding-bottom: 16px;
+        }
+
+        .predictions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .prediction-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 28px 24px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .prediction-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .prediction-card h3 {
+            font-size: 0.85em;
+            margin-bottom: 12px;
+            opacity: 0.9;
+            font-weight: 500;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .prediction-card .value {
+            font-size: 2.2em;
+            font-weight: 700;
+            margin: 16px 0;
+            letter-spacing: -0.5px;
+        }
+
+        .prediction-card .details {
+            margin-top: 12px;
+            font-size: 0.85em;
+            opacity: 0.95;
+            line-height: 1.6;
+        }
+
+        .plots-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 24px;
+            margin-top: 32px;
+        }
+
+        .plot-card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            border: 1px solid #e1e8ed;
+            transition: box-shadow 0.3s ease, transform 0.3s ease;
+        }
+
+        .plot-card:hover {
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+
+        .plot-card img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            display: block;
+        }
+
+        .plot-card h3 {
+            margin-bottom: 16px;
+            color: #1e3c72;
+            font-size: 1.1em;
+            font-weight: 600;
+            letter-spacing: -0.2px;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f0f0f0;
+            border-top: 3px solid #2a5298;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        .loading p {
+            color: #7f8c8d;
+            font-size: 0.95em;
+            font-weight: 500;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #e74c3c;
+            color: white;
+            padding: 16px 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+            font-size: 0.9em;
+            font-weight: 500;
+            box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
+        }
+
+        .error.show {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .crypto-info {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 16px 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+            border: 1px solid #dee2e6;
+        }
+
+        .crypto-info.show {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .crypto-info strong {
+            color: #1e3c72;
+            font-weight: 600;
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .crypto-info #cryptoDetails {
+            color: #2c3e50;
+            font-size: 0.95em;
+            font-weight: 500;
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .form-container {
+                position: static;
+            }
+
+            .plots-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .predictions-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-container,
+            .results-container {
+                padding: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <div class="header-text">
+                    <h1>Dashboard Crypto - Machine Learning</h1>
+                    <p>Prédictions basées sur KMeans, Logistic Regression, Random Forest et XGBoost</p>
+                </div>
+                <a href="/logout" class="logout-btn">Déconnexion</a>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="form-container">
+                <h2>Entrer les Données</h2>
+                <form id="predictionForm">
+                    <div class="form-group">
+                        <label for="crypto_select">Sélectionner une Cryptomonnaie</label>
+                        <select id="crypto_select" name="crypto_select" required>
+                            <option value="">Chargement...</option>
+                        </select>
+                        <small>Sélectionnez une cryptomonnaie depuis la liste</small>
+                    </div>
+
+                    <div class="crypto-info" id="cryptoInfo">
+                        <strong>Cryptomonnaie sélectionnée</strong>
+                        <div id="cryptoDetails"></div>
+                    </div>
+
+                    <button type="submit" class="btn" id="submitBtn" disabled>Obtenir les Prédictions</button>
+                </form>
+
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Traitement en cours...</p>
+                </div>
+
+                <div class="error" id="error"></div>
+            </div>
+
+            <div class="results-container" id="results">
+                <h2>Résultats des Prédictions</h2>
+                
+                <div class="predictions-grid" id="predictionsGrid">
+                    <!-- Les cartes de prédiction seront insérées ici -->
+                </div>
+
+                <div class="plots-container" id="plotsContainer">
+                    <!-- Les graphiques seront insérés ici -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('predictionForm');
+        const results = document.getElementById('results');
+        const loading = document.getElementById('loading');
+        const errorDiv = document.getElementById('error');
+        const cryptoSelect = document.getElementById('crypto_select');
+        const submitBtn = document.getElementById('submitBtn');
+        const cryptoInfo = document.getElementById('cryptoInfo');
+        const cryptoDetails = document.getElementById('cryptoDetails');
+
+        // Charger la liste des cryptomonnaies
+        async function loadCryptos() {
+            try {
+                const response = await fetch('/api/cryptos');
+                const data = await response.json();
+                
+                if (data.success) {
+                    cryptoSelect.innerHTML = '<option value="">Sélectionnez une cryptomonnaie</option>';
+                    data.cryptos.forEach(crypto => {
+                        const option = document.createElement('option');
+                        option.value = crypto.name;
+                        option.textContent = `${crypto.name} (${crypto.symbol})`;
+                        option.setAttribute('data-symbol', crypto.symbol);
+                        cryptoSelect.appendChild(option);
+                    });
+                    submitBtn.disabled = false;
+                } else {
+                    cryptoSelect.innerHTML = '<option value="">Erreur de chargement</option>';
+                    errorDiv.textContent = 'Erreur: ' + (data.error || 'Impossible de charger les cryptomonnaies');
+                    errorDiv.classList.add('show');
+                }
+            } catch (error) {
+                cryptoSelect.innerHTML = '<option value="">Erreur de chargement</option>';
+                errorDiv.textContent = 'Erreur: ' + error.message;
+                errorDiv.classList.add('show');
+            }
+        }
+
+        // Afficher les détails de la crypto sélectionnée
+        cryptoSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            if (selectedOption.value) {
+                cryptoDetails.textContent = `${selectedOption.textContent}`;
+                cryptoInfo.classList.add('show');
+            } else {
+                cryptoInfo.classList.remove('show');
+            }
+        });
+
+        // Charger les cryptos au chargement de la page
+        loadCryptos();
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Afficher le loading
+            loading.classList.add('show');
+            results.classList.remove('show');
+            errorDiv.classList.remove('show');
+
+            const selectedOption = cryptoSelect.options[cryptoSelect.selectedIndex];
+            const cryptoName = selectedOption.value;
+            const cryptoSymbol = selectedOption.getAttribute('data-symbol');
+
+            if (!cryptoName) {
+                loading.classList.remove('show');
+                errorDiv.textContent = 'Veuillez sélectionner une cryptomonnaie';
+                errorDiv.classList.add('show');
+                return;
+            }
+
+            const formData = {
+                crypto_name: cryptoName,
+                crypto_symbol: cryptoSymbol
+            };
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    displayResults(data.predictions, data.plots);
+                    loading.classList.remove('show');
+                    results.classList.add('show');
+                } else {
+                    throw new Error(data.error || 'Une erreur est survenue');
+                }
+            } catch (error) {
+                loading.classList.remove('show');
+                errorDiv.textContent = 'Erreur: ' + error.message;
+                errorDiv.classList.add('show');
+            }
+        });
+
+        function displayResults(predictions, plots) {
+            // Afficher les cartes de prédiction
+            const predictionsGrid = document.getElementById('predictionsGrid');
+            predictionsGrid.innerHTML = `
+                <div class="prediction-card">
+                    <h3>Cluster</h3>
+                    <div class="value">${predictions.cluster}</div>
+                </div>
+                <div class="prediction-card">
+                    <h3>Direction</h3>
+                    <div class="value">${predictions.direction}</div>
+                    <div class="details">
+                        Hausse: ${predictions.proba_hausse}%<br>
+                        Baisse: ${predictions.proba_baisse}%
+                    </div>
+                </div>
+                <div class="prediction-card">
+                    <h3>Niveau de Risque</h3>
+                    <div class="value">${predictions.risk}</div>
+                </div>
+                <div class="prediction-card">
+                    <h3>Prix Prédit</h3>
+                    <div class="value">${predictions.price_predicted.toFixed(4)}</div>
+                </div>
+            `;
+
+            // Afficher les graphiques
+            const plotsContainer = document.getElementById('plotsContainer');
+            plotsContainer.innerHTML = `
+                <div class="plot-card">
+                    <h3>Direction du Prix</h3>
+                    <img src="data:image/png;base64,${plots.direction}" alt="Direction">
+                </div>
+                <div class="plot-card">
+                    <h3>Classification de Risque</h3>
+                    <img src="data:image/png;base64,${plots.risk}" alt="Risque">
+                </div>
+                <div class="plot-card">
+                    <h3>Distribution du Risque</h3>
+                    <img src="data:image/png;base64,${plots.risk_pie}" alt="Risque Pie">
+                </div>
+                <div class="plot-card">
+                    <h3>Prédiction de Prix</h3>
+                    <img src="data:image/png;base64,${plots.price}" alt="Prix">
+                </div>
+                <div class="plot-card">
+                    <h3>Cluster Assigné</h3>
+                    <img src="data:image/png;base64,${plots.cluster}" alt="Cluster">
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

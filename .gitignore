@@ -1,0 +1,42 @@
+# Modèles sauvegardés (générés par train_models.py)
+*.pkl
+*.joblib
+*.h5
+*.model
+
+# Dossiers générés
+catboost_info/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.ipynb_checkpoints/
+
+# Environnement virtuel
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+*.lnk
+
+# Logs
+*.log
+
+# Fichiers temporaires
+*.tmp
+*.temp
+
+# Anciens modèles (remplacés)
+catboost_model.pkl
+xgb_binary_model.pkl
+
