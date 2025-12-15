@@ -411,7 +411,7 @@
             <div class="header-content">
                 <div class="header-text">
                     <h1>Dashboard Crypto - Machine Learning</h1>
-                    <p>Prédictions basées sur KMeans, Logistic Regression, Random Forest et XGBoost</p>
+                    <p>Analyses claires pour suivre vos cryptomonnaies en confiance</p>
                 </div>
                 <a href="/logout" class="logout-btn">Déconnexion</a>
             </div>
@@ -565,7 +565,7 @@
             const predictionsGrid = document.getElementById('predictionsGrid');
             predictionsGrid.innerHTML = `
                 <div class="prediction-card">
-                    <h3>Cluster</h3>
+                    <h3>Catégorie de fonctionnement</h3>
                     <div class="value">${predictions.cluster}</div>
                 </div>
                 <div class="prediction-card">
@@ -577,7 +577,7 @@
                     </div>
                 </div>
                 <div class="prediction-card">
-                    <h3>Niveau de Risque</h3>
+                    <h3>Niveau de vigilance</h3>
                     <div class="value">${predictions.risk}</div>
                 </div>
                 <div class="prediction-card">
@@ -594,20 +594,20 @@
                     <img src="data:image/png;base64,${plots.direction}" alt="Direction">
                 </div>
                 <div class="plot-card">
-                    <h3>Classification de Risque</h3>
-                    <img src="data:image/png;base64,${plots.risk}" alt="Risque">
+                    <h3>Profils de vigilance</h3>
+                    <img src="data:image/png;base64,${plots.risk}" alt="Profils de vigilance">
                 </div>
                 <div class="plot-card">
-                    <h3>Distribution du Risque</h3>
-                    <img src="data:image/png;base64,${plots.risk_pie}" alt="Risque Pie">
+                    <h3>Répartition des profils</h3>
+                    <img src="data:image/png;base64,${plots.risk_pie}" alt="Répartition des profils">
                 </div>
                 <div class="plot-card">
                     <h3>Prédiction de Prix</h3>
                     <img src="data:image/png;base64,${plots.price}" alt="Prix">
                 </div>
                 <div class="plot-card">
-                    <h3>Cluster Assigné</h3>
-                    <img src="data:image/png;base64,${plots.cluster}" alt="Cluster">
+                    <h3>Catégorie attribuée</h3>
+                    <img src="data:image/png;base64,${plots.cluster}" alt="Catégorie attribuée">
                 </div>
             `;
         }

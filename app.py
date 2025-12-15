@@ -36,6 +36,29 @@ xgb_regressor_model = None
 feature_info = None
 crypto_df = None
 
+# Libellés lisibles pour l'interface
+FRIENDLY_RISK_LABELS = {
+    'Stable': 'Profil équilibré',
+    'Volatile': 'Profil dynamique',
+    'Speculative': 'Profil à surveiller'
+}
+
+CLUSTER_LABELS = {
+    0: 'Fonctionnement habituel',
+    1: 'Fonctionnement à surveiller'
+}
+
+RISK_COLORS = {
+    FRIENDLY_RISK_LABELS['Stable']: '#3498db',
+    FRIENDLY_RISK_LABELS['Volatile']: '#f39c12',
+    FRIENDLY_RISK_LABELS['Speculative']: '#e74c3c'
+}
+
+CLUSTER_COLORS = {
+    0: '#3498db',
+    1: '#e74c3c'
+}
+
 # ============================================================================
 # CHARGEMENT DES MODÈLES
 # ============================================================================
@@ -310,21 +333,35 @@ def predict():
         risk_classes = random_forest_model.classes_
         risk_proba_dict = {risk_classes[i]: float(risk_proba[i]) * 100 
                           for i in range(len(risk_classes))}
+        readable_risk = FRIENDLY_RISK_LABELS.get(risk_pred, str(risk_pred))
+        readable_risk_proba = {
+            FRIENDLY_RISK_LABELS.get(key, key): value
+            for key, value in risk_proba_dict.items()
+        }
         
         price_pred = float(xgb_regressor_model.predict(features_regression)[0])
+        readable_cluster = CLUSTER_LABELS.get(cluster, f'Profil {cluster}')
         
         # Générer les graphiques
-        plots = generate_plots(binary_proba, risk_proba_dict, risk_pred, price_pred, cluster, direction)
+        plots = generate_plots(
+            binary_proba,
+            readable_risk_proba,
+            readable_risk,
+            price_pred,
+            cluster,
+            readable_cluster,
+            direction
+        )
         
         return jsonify({
             'success': True,
             'predictions': {
-                'cluster': int(cluster),
+                'cluster': readable_cluster,
                 'direction': direction,
                 'proba_hausse': round(proba_hausse, 2),
                 'proba_baisse': round(proba_baisse, 2),
-                'risk': str(risk_pred),
-                'risk_proba': risk_proba_dict,
+                'risk': readable_risk,
+                'risk_proba': readable_risk_proba,
                 'price_predicted': round(price_pred, 4)
             },
             'plots': plots
@@ -340,7 +377,7 @@ def predict():
 # GÉNÉRATION DE GRAPHIQUES
 # ============================================================================
 
-def generate_plots(binary_proba, risk_proba_dict, risk_pred, price_pred, cluster, direction):
+def generate_plots(binary_proba, risk_proba_dict, risk_label, price_pred, cluster_id, cluster_label, direction):
     """Génère tous les graphiques pour le dashboard"""
     plots = {}
     
@@ -363,11 +400,10 @@ def generate_plots(binary_proba, risk_proba_dict, risk_pred, price_pred, cluster
     fig, ax = plt.subplots(figsize=(8, 6))
     risk_categories = list(risk_proba_dict.keys())
     risk_probas = list(risk_proba_dict.values())
-    colors_risk = {'Stable': '#3498db', 'Volatile': '#f39c12', 'Speculative': '#e74c3c'}
-    bar_colors = [colors_risk.get(cat, '#95a5a6') for cat in risk_categories]
+    bar_colors = [RISK_COLORS.get(cat, '#95a5a6') for cat in risk_categories]
     bars = ax.bar(risk_categories, risk_probas, color=bar_colors, alpha=0.7, edgecolor='black')
     ax.set_ylabel('Probabilité (%)', fontsize=12)
-    ax.set_title(f'Classification de Risque: {risk_pred}', fontsize=14, fontweight='bold')
+    ax.set_title(f'Profils de vigilance: {risk_label}', fontsize=14, fontweight='bold')
     ax.set_ylim(0, 100)
     for bar, prob in zip(bars, risk_probas):
         ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1,
@@ -377,11 +413,11 @@ def generate_plots(binary_proba, risk_proba_dict, risk_pred, price_pred, cluster
     
     # Graphique en camembert pour le risque
     fig, ax = plt.subplots(figsize=(8, 8))
-    colors_pie = [colors_risk.get(cat, '#95a5a6') for cat in risk_categories]
+    colors_pie = [RISK_COLORS.get(cat, '#95a5a6') for cat in risk_categories]
     wedges, texts, autotexts = ax.pie(risk_probas, labels=risk_categories, 
                                       autopct='%1.1f%%', colors=colors_pie,
                                       startangle=90, textprops={'fontsize': 12})
-    ax.set_title('Distribution des Probabilités de Risque', fontsize=14, fontweight='bold')
+    ax.set_title('Répartition des profils de vigilance', fontsize=14, fontweight='bold')
     plt.tight_layout()
     plots['risk_pie'] = create_plot_base64(fig)
     
@@ -398,12 +434,12 @@ def generate_plots(binary_proba, risk_proba_dict, risk_pred, price_pred, cluster
     
     # Graphique du cluster
     fig, ax = plt.subplots(figsize=(8, 6))
-    cluster_colors = ['#3498db', '#e74c3c']
-    ax.bar(['Cluster'], [1], color=cluster_colors[cluster], alpha=0.7, edgecolor='black')
-    ax.set_ylabel('Cluster', fontsize=12)
-    ax.set_title(f'Cluster Assigné: {cluster}', fontsize=14, fontweight='bold')
+    cluster_color = CLUSTER_COLORS.get(cluster_id, '#95a5a6')
+    ax.bar(['Catégorie'], [1], color=cluster_color, alpha=0.7, edgecolor='black')
+    ax.set_ylabel('Profil attribué', fontsize=12)
+    ax.set_title(f'Catégorie attribuée: {cluster_label}', fontsize=14, fontweight='bold')
     ax.set_ylim(0, 1.2)
-    ax.text(0, 0.5, f'Cluster {cluster}', ha='center', va='center',
+    ax.text(0, 0.5, cluster_label, ha='center', va='center',
             fontsize=16, fontweight='bold', color='white')
     plt.tight_layout()
     plots['cluster'] = create_plot_base64(fig)
