@@ -1,16 +1,16 @@
 """
-Application Flask pour le dashboard de prédiction de cryptomonnaies
+Flask application for the cryptocurrency prediction dashboard
 """
-# Imports Flask
+# Flask imports
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from functools import wraps
 
-# Imports Python standard
+# Standard Python imports
 import pickle
 import base64
 import io
 
-# Imports scientifiques
+# Scientific imports
 import numpy as np
 import pandas as pd
 import joblib
@@ -19,15 +19,15 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# Configuration Flask
+# Flask configuration
 app = Flask(__name__)
 app.secret_key = 'crypto_ml_dashboard_secret_key_2024'
 
-# Credentials d'authentification
+# Authentication credentials
 ADMIN_USERNAME = 'admin'
 ADMIN_PASSWORD = 'admin'
 
-# Variables globales pour les modèles
+# Global variables for models
 scaler = None
 kmeans_model = None
 logistic_regression_model = None
@@ -36,16 +36,16 @@ xgb_regressor_model = None
 feature_info = None
 crypto_df = None
 
-# Libellés lisibles pour l'interface
+# Readable labels for the interface
 FRIENDLY_RISK_LABELS = {
-    'Stable': 'Profil équilibré',
-    'Volatile': 'Profil dynamique',
-    'Speculative': 'Profil à surveiller'
+    'Stable': 'Balanced profile',
+    'Volatile': 'Dynamic profile',
+    'Speculative': 'Profile to monitor'
 }
 
 CLUSTER_LABELS = {
-    0: 'Fonctionnement habituel',
-    1: 'Fonctionnement à surveiller'
+    0: 'Normal behaviour',
+    1: 'Behaviour to monitor'
 }
 
 RISK_COLORS = {
@@ -59,12 +59,17 @@ CLUSTER_COLORS = {
     1: '#e74c3c'
 }
 
+TIME_HORIZON_LABELS = {
+    '24h': 'Next 24 hours',
+    '7d': 'Next 7 days'
+}
+
 # ============================================================================
-# CHARGEMENT DES MODÈLES
+# MODEL LOADING
 # ============================================================================
 
 def load_models():
-    """Charge tous les modèles entraînés"""
+    """Load all trained models"""
     global scaler, kmeans_model, logistic_regression_model
     global random_forest_model, xgb_regressor_model, feature_info
     
@@ -78,29 +83,29 @@ def load_models():
         with open('feature_info.pkl', 'rb') as f:
             feature_info = pickle.load(f)
         
-        print("Tous les modèles chargés avec succès!")
+        print("All models loaded successfully!")
         print("- KMeans (Clustering)")
-        print("- Logistic Regression (Classification Binaire)")
-        print("- Random Forest (Classification Multiclasse)")
-        print("- XGBoost Regressor (Prédiction)")
+        print("- Logistic Regression (Binary Classification)")
+        print("- Random Forest (Multiclass Classification)")
+        print("- XGBoost Regressor (Regression)")
     except FileNotFoundError as e:
-        missing_file = str(e).split("'")[1] if "'" in str(e) else "fichier inconnu"
-        print(f"\n❌ ERREUR: Fichier manquant - {missing_file}")
-        print("\n⚠️  ATTENTION: Les modèles doivent être réentraînés!")
-        print("Exécutez: py train_models.py")
+        missing_file = str(e).split("'")[1] if "'" in str(e) else "unknown file"
+        print(f"\n❌ ERROR: Missing file - {missing_file}")
+        print("\n⚠️  WARNING: Models must be retrained!")
+        print("Run: py train_models.py")
     except Exception as e:
         import traceback
-        print(f"\n❌ ERREUR lors du chargement des modèles:")
+        print(f"\n❌ ERROR while loading models:")
         print(f"   {type(e).__name__}: {e}")
         traceback.print_exc()
-        print("\n⚠️  Solution: Exécutez 'py train_models.py' pour réentraîner les modèles")
+        print("\n⚠️  Solution: Run 'py train_models.py' to retrain the models")
 
 # ============================================================================
-# FONCTIONS UTILITAIRES
+# UTILITY FUNCTIONS
 # ============================================================================
 
 def convert_numeric_like(df, cols, inplace=False):
-    """Convertit les colonnes en format numérique"""
+    """Convert columns to numeric format"""
     out = df if inplace else df.copy()
     for col in cols:
         s = out[col].astype(str)
@@ -118,7 +123,7 @@ def convert_numeric_like(df, cols, inplace=False):
     return out
 
 def load_crypto_data():
-    """Charge les données des cryptomonnaies depuis le CSV"""
+    """Load cryptocurrency data from CSV"""
     try:
         df = pd.read_csv('cryptocurrency.csv', low_memory=False)
         num_cols = ['price_usd', 'vol_24h', 'chg_24h', 'chg_7d', 'market_cap']
@@ -126,11 +131,11 @@ def load_crypto_data():
         df = df.dropna(subset=num_cols)
         return df
     except Exception as e:
-        print(f"Erreur lors du chargement des données: {e}")
+        print(f"Error while loading data: {e}")
         return pd.DataFrame()
 
 def preprocess_input_values(price_usd, vol_24h, market_cap, chg_24h, chg_7d, is_raw=True):
-    """Transforme les valeurs brutes en valeurs standardisées si nécessaire"""
+    """Transform raw values into standardized values if needed"""
     if is_raw:
         data = pd.DataFrame({
             'price_usd': [price_usd],
@@ -140,7 +145,7 @@ def preprocess_input_values(price_usd, vol_24h, market_cap, chg_24h, chg_7d, is_
             'chg_7d': [chg_7d]
         })
         
-        # Transformation log pour certaines colonnes
+        # Log transformation for some columns
         log_cols = ['price_usd', 'vol_24h', 'market_cap']
         for col in log_cols:
             if data[col].iloc[0] > 0:
@@ -148,7 +153,7 @@ def preprocess_input_values(price_usd, vol_24h, market_cap, chg_24h, chg_7d, is_
             else:
                 data[col] = 0
         
-        # Standardisation
+        # Standardization
         cols_to_scale = ['price_usd', 'vol_24h', 'market_cap', 'chg_24h', 'chg_7d']
         data_scaled = scaler.transform(data[cols_to_scale])
         
@@ -169,7 +174,7 @@ def preprocess_input_values(price_usd, vol_24h, market_cap, chg_24h, chg_7d, is_
         }
 
 def create_plot_base64(fig):
-    """Convertit une figure matplotlib en base64 pour l'affichage HTML"""
+    """Convert a matplotlib figure to base64 for HTML display"""
     img = io.BytesIO()
     fig.savefig(img, format='png', bbox_inches='tight', dpi=100)
     img.seek(0)
@@ -178,11 +183,11 @@ def create_plot_base64(fig):
     return plot_url
 
 # ============================================================================
-# AUTHENTIFICATION
+# AUTHENTICATION
 # ============================================================================
 
 def login_required(f):
-    """Décorateur pour protéger les routes nécessitant une authentification"""
+    """Decorator to protect routes requiring authentication"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'logged_in' not in session or not session['logged_in']:
@@ -191,12 +196,12 @@ def login_required(f):
     return decorated_function
 
 # ============================================================================
-# ROUTES D'AUTHENTIFICATION
+# AUTHENTICATION ROUTES
 # ============================================================================
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Page de connexion"""
+    """Login page"""
     if request.method == 'POST':
         username = request.form.get('username', '')
         password = request.form.get('password', '')
@@ -206,7 +211,7 @@ def login():
             session['username'] = username
             return redirect(url_for('index'))
         else:
-            return render_template('login.html', error='Identifiants incorrects')
+            return render_template('login.html', error='Incorrect credentials')
     
     if 'logged_in' in session and session['logged_in']:
         return redirect(url_for('index'))
@@ -216,34 +221,34 @@ def login():
 @app.route('/logout')
 @login_required
 def logout():
-    """Déconnexion"""
+    """Logout"""
     session.clear()
     return redirect(url_for('login'))
 
 @app.route('/')
 def root():
-    """Redirection vers login si non connecté, sinon vers le dashboard"""
+    """Redirect to login if not connected, otherwise to dashboard"""
     if 'logged_in' in session and session['logged_in']:
         return redirect(url_for('index'))
     return redirect(url_for('login'))
 
 # ============================================================================
-# ROUTES PRINCIPALES
+# MAIN ROUTES
 # ============================================================================
 
 @app.route('/dashboard')
 @login_required
 def index():
-    """Page principale du dashboard"""
+    """Main dashboard page"""
     return render_template('index.html')
 
 @app.route('/api/cryptos', methods=['GET'])
 @login_required
 def get_cryptos():
-    """Retourne la liste des cryptomonnaies disponibles"""
+    """Return the list of available cryptocurrencies"""
     try:
         if crypto_df.empty:
-            return jsonify({'success': False, 'error': 'Données non disponibles'}), 500
+            return jsonify({'success': False, 'error': 'Data not available'}), 500
         
         cryptos = crypto_df[['name', 'symbol']].drop_duplicates().sort_values('name')
         cryptos_list = [
@@ -264,24 +269,26 @@ def get_cryptos():
 @app.route('/predict', methods=['POST'])
 @login_required
 def predict():
-    """Route pour les prédictions"""
+    """Route for predictions"""
     if not all([scaler, kmeans_model, logistic_regression_model, random_forest_model, xgb_regressor_model]):
         return jsonify({
             'success': False,
-            'error': 'Les modèles ne sont pas chargés. Veuillez exécuter train_models.py d\'abord.'
+            'error': 'Models are not loaded. Please run train_models.py first.'
         }), 500
     
     try:
         data = request.json
         crypto_name = data.get('crypto_name', None)
         crypto_symbol = data.get('crypto_symbol', None)
+        time_horizon = data.get('time_horizon', '24h')
+        readable_horizon = TIME_HORIZON_LABELS.get(time_horizon, 'Next 24 hours')
         
-        # Récupérer les données de la crypto ou utiliser les valeurs directes
+        # Retrieve crypto data or use direct values
         if crypto_name or crypto_symbol:
             if crypto_df.empty:
                 return jsonify({
                     'success': False,
-                    'error': 'Données des cryptomonnaies non disponibles'
+                    'error': 'Cryptocurrency data not available'
                 }), 400
             
             if crypto_name:
@@ -292,7 +299,7 @@ def predict():
             if crypto_data.empty:
                 return jsonify({
                     'success': False,
-                    'error': f'Cryptomonnaie "{crypto_name or crypto_symbol}" non trouvée'
+                    'error': f'Cryptocurrency "{crypto_name or crypto_symbol}" not found'
                 }), 400
             
             crypto_row = crypto_data.iloc[-1]
@@ -311,7 +318,7 @@ def predict():
             chg_7d = float(data.get('chg_7d', 0))
             processed = preprocess_input_values(price_usd, vol_24h, market_cap, chg_24h, chg_7d, is_raw)
         
-        # Préparer les features
+        # Prepare features
         features_clustering = np.array([[processed['price_usd'], processed['vol_24h'], 
                                           processed['market_cap'], processed['chg_24h'], processed['chg_7d']]])
         features_classification = np.array([[processed['price_usd'], processed['vol_24h'], 
@@ -319,14 +326,14 @@ def predict():
         features_regression = np.array([[processed['vol_24h'], processed['market_cap'], 
                                        processed['chg_24h'], processed['chg_7d']]])
         
-        # Prédictions
+        # Predictions
         cluster = int(kmeans_model.predict(features_clustering)[0])
         
         binary_pred = logistic_regression_model.predict(features_classification)[0]
         binary_proba = logistic_regression_model.predict_proba(features_classification)[0]
-        direction = "Hausse" if binary_pred == 1 else "Baisse"
-        proba_hausse = float(binary_proba[1]) * 100
-        proba_baisse = float(binary_proba[0]) * 100
+        direction = "Up" if binary_pred == 1 else "Down"
+        proba_up = float(binary_proba[1]) * 100
+        proba_down = float(binary_proba[0]) * 100
         
         risk_pred = random_forest_model.predict(features_classification)[0]
         risk_proba = random_forest_model.predict_proba(features_classification)[0]
@@ -340,9 +347,9 @@ def predict():
         }
         
         price_pred = float(xgb_regressor_model.predict(features_regression)[0])
-        readable_cluster = CLUSTER_LABELS.get(cluster, f'Profil {cluster}')
+        readable_cluster = CLUSTER_LABELS.get(cluster, f'Profile {cluster}')
         
-        # Générer les graphiques
+        # Generate plots
         plots = generate_plots(
             binary_proba,
             readable_risk_proba,
@@ -350,7 +357,8 @@ def predict():
             price_pred,
             cluster,
             readable_cluster,
-            direction
+            direction,
+            readable_horizon
         )
         
         return jsonify({
@@ -358,11 +366,12 @@ def predict():
             'predictions': {
                 'cluster': readable_cluster,
                 'direction': direction,
-                'proba_hausse': round(proba_hausse, 2),
-                'proba_baisse': round(proba_baisse, 2),
+                'proba_hausse': round(proba_up, 2),
+                'proba_baisse': round(proba_down, 2),
                 'risk': readable_risk,
                 'risk_proba': readable_risk_proba,
-                'price_predicted': round(price_pred, 4)
+                'price_predicted': round(price_pred, 4),
+                'time_horizon': readable_horizon
             },
             'plots': plots
         })
@@ -374,21 +383,21 @@ def predict():
         }), 400
 
 # ============================================================================
-# GÉNÉRATION DE GRAPHIQUES
+# PLOT GENERATION
 # ============================================================================
 
-def generate_plots(binary_proba, risk_proba_dict, risk_label, price_pred, cluster_id, cluster_label, direction):
-    """Génère tous les graphiques pour le dashboard"""
+def generate_plots(binary_proba, risk_proba_dict, risk_label, price_pred, cluster_id, cluster_label, direction, horizon_label):
+    """Generate all plots for the dashboard"""
     plots = {}
     
-    # Graphique de probabilité direction
+    # Direction probability plot
     fig, ax = plt.subplots(figsize=(8, 6))
-    categories = ['Baisse', 'Hausse']
+    categories = ['Down', 'Up']
     probas = [binary_proba[0] * 100, binary_proba[1] * 100]
     colors = ['#e74c3c', '#2ecc71']
     bars = ax.bar(categories, probas, color=colors, alpha=0.7, edgecolor='black')
-    ax.set_ylabel('Probabilité (%)', fontsize=12)
-    ax.set_title(f'Prédiction de Direction: {direction}', fontsize=14, fontweight='bold')
+    ax.set_ylabel('Probability (%)', fontsize=12)
+    ax.set_title(f'Price direction ({horizon_label}): {direction}', fontsize=14, fontweight='bold')
     ax.set_ylim(0, 100)
     for i, (bar, prob) in enumerate(zip(bars, probas)):
         ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1,
@@ -396,14 +405,14 @@ def generate_plots(binary_proba, risk_proba_dict, risk_label, price_pred, cluste
     plt.tight_layout()
     plots['direction'] = create_plot_base64(fig)
     
-    # Graphique de probabilité de risque
+    # Risk probability plot
     fig, ax = plt.subplots(figsize=(8, 6))
     risk_categories = list(risk_proba_dict.keys())
     risk_probas = list(risk_proba_dict.values())
     bar_colors = [RISK_COLORS.get(cat, '#95a5a6') for cat in risk_categories]
     bars = ax.bar(risk_categories, risk_probas, color=bar_colors, alpha=0.7, edgecolor='black')
-    ax.set_ylabel('Probabilité (%)', fontsize=12)
-    ax.set_title(f'Profils de vigilance: {risk_label}', fontsize=14, fontweight='bold')
+    ax.set_ylabel('Probability (%)', fontsize=12)
+    ax.set_title(f'Attention profiles: {risk_label}', fontsize=14, fontweight='bold')
     ax.set_ylim(0, 100)
     for bar, prob in zip(bars, risk_probas):
         ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1,
@@ -411,33 +420,33 @@ def generate_plots(binary_proba, risk_proba_dict, risk_label, price_pred, cluste
     plt.tight_layout()
     plots['risk'] = create_plot_base64(fig)
     
-    # Graphique en camembert pour le risque
+    # Risk pie chart
     fig, ax = plt.subplots(figsize=(8, 8))
     colors_pie = [RISK_COLORS.get(cat, '#95a5a6') for cat in risk_categories]
     wedges, texts, autotexts = ax.pie(risk_probas, labels=risk_categories, 
                                       autopct='%1.1f%%', colors=colors_pie,
                                       startangle=90, textprops={'fontsize': 12})
-    ax.set_title('Répartition des profils de vigilance', fontsize=14, fontweight='bold')
+    ax.set_title('Attention profile distribution', fontsize=14, fontweight='bold')
     plt.tight_layout()
     plots['risk_pie'] = create_plot_base64(fig)
     
-    # Graphique de prédiction de prix
+    # Price prediction plot
     fig, ax = plt.subplots(figsize=(8, 6))
-    ax.barh(['Prix Prédit'], [price_pred], color='#9b59b6', alpha=0.7, edgecolor='black')
-    ax.set_xlabel('Prix (standardisé)', fontsize=12)
-    ax.set_title('Prédiction du Prix USD', fontsize=14, fontweight='bold')
+    ax.barh(['Predicted price'], [price_pred], color='#9b59b6', alpha=0.7, edgecolor='black')
+    ax.set_xlabel('Price (standardized)', fontsize=12)
+    ax.set_title('USD price prediction', fontsize=14, fontweight='bold')
     ax.text(price_pred, 0, f'{price_pred:.4f}', 
             ha='left', va='center', fontsize=12, fontweight='bold', 
             bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
     plt.tight_layout()
     plots['price'] = create_plot_base64(fig)
     
-    # Graphique du cluster
+    # Cluster plot
     fig, ax = plt.subplots(figsize=(8, 6))
     cluster_color = CLUSTER_COLORS.get(cluster_id, '#95a5a6')
-    ax.bar(['Catégorie'], [1], color=cluster_color, alpha=0.7, edgecolor='black')
-    ax.set_ylabel('Profil attribué', fontsize=12)
-    ax.set_title(f'Catégorie attribuée: {cluster_label}', fontsize=14, fontweight='bold')
+    ax.bar(['Category'], [1], color=cluster_color, alpha=0.7, edgecolor='black')
+    ax.set_ylabel('Assigned profile', fontsize=12)
+    ax.set_title(f'Assigned category: {cluster_label}', fontsize=14, fontweight='bold')
     ax.set_ylim(0, 1.2)
     ax.text(0, 0.5, cluster_label, ha='center', va='center',
             fontsize=16, fontweight='bold', color='white')
@@ -447,7 +456,7 @@ def generate_plots(binary_proba, risk_proba_dict, risk_label, price_pred, cluste
     return plots
 
 # ============================================================================
-# INITIALISATION
+# INITIALIZATION
 # ============================================================================
 
 if __name__ == '__main__':

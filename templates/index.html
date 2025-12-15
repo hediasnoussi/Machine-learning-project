@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Crypto - Prédiction ML</title>
+    <title>Crypto Dashboard - Market Insights</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
@@ -410,50 +410,59 @@
         <div class="header">
             <div class="header-content">
                 <div class="header-text">
-                    <h1>Dashboard Crypto - Machine Learning</h1>
-                    <p>Analyses claires pour suivre vos cryptomonnaies en confiance</p>
+                    <h1>Crypto Dashboard - Machine Learning</h1>
+                    <p>Clear insights to follow your cryptocurrencies with confidence</p>
                 </div>
-                <a href="/logout" class="logout-btn">Déconnexion</a>
+                <a href="/logout" class="logout-btn">Logout</a>
             </div>
         </div>
 
         <div class="main-content">
             <div class="form-container">
-                <h2>Entrer les Données</h2>
+                <h2>Select a cryptocurrency</h2>
                 <form id="predictionForm">
                     <div class="form-group">
-                        <label for="crypto_select">Sélectionner une Cryptomonnaie</label>
+                        <label for="crypto_select">Choose a cryptocurrency</label>
                         <select id="crypto_select" name="crypto_select" required>
-                            <option value="">Chargement...</option>
+                            <option value="">Loading...</option>
                         </select>
-                        <small>Sélectionnez une cryptomonnaie depuis la liste</small>
+                        <small>Select a cryptocurrency from the list</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="time_horizon">Time horizon</label>
+                        <select id="time_horizon" name="time_horizon" required>
+                            <option value="24h" selected>Next 24 hours</option>
+                            <option value="7d">Next 7 days</option>
+                        </select>
+                        <small>Choose the period for the market movement view</small>
                     </div>
 
                     <div class="crypto-info" id="cryptoInfo">
-                        <strong>Cryptomonnaie sélectionnée</strong>
+                        <strong>Selected cryptocurrency</strong>
                         <div id="cryptoDetails"></div>
                     </div>
 
-                    <button type="submit" class="btn" id="submitBtn" disabled>Obtenir les Prédictions</button>
+                    <button type="submit" class="btn" id="submitBtn" disabled>View market insights</button>
                 </form>
 
                 <div class="loading" id="loading">
                     <div class="spinner"></div>
-                    <p>Traitement en cours...</p>
+                    <p>Processing...</p>
                 </div>
 
                 <div class="error" id="error"></div>
             </div>
 
             <div class="results-container" id="results">
-                <h2>Résultats des Prédictions</h2>
+                <h2>Market movements</h2>
                 
                 <div class="predictions-grid" id="predictionsGrid">
-                    <!-- Les cartes de prédiction seront insérées ici -->
+                    <!-- Prediction cards will be inserted here -->
                 </div>
 
                 <div class="plots-container" id="plotsContainer">
-                    <!-- Les graphiques seront insérés ici -->
+                    <!-- Charts will be inserted here -->
                 </div>
             </div>
         </div>
@@ -468,15 +477,16 @@
         const submitBtn = document.getElementById('submitBtn');
         const cryptoInfo = document.getElementById('cryptoInfo');
         const cryptoDetails = document.getElementById('cryptoDetails');
+        const timeHorizonSelect = document.getElementById('time_horizon');
 
-        // Charger la liste des cryptomonnaies
+        // Load cryptocurrency list
         async function loadCryptos() {
             try {
                 const response = await fetch('/api/cryptos');
                 const data = await response.json();
                 
                 if (data.success) {
-                    cryptoSelect.innerHTML = '<option value="">Sélectionnez une cryptomonnaie</option>';
+                    cryptoSelect.innerHTML = '<option value="">Select a cryptocurrency</option>';
                     data.cryptos.forEach(crypto => {
                         const option = document.createElement('option');
                         option.value = crypto.name;
@@ -486,18 +496,18 @@
                     });
                     submitBtn.disabled = false;
                 } else {
-                    cryptoSelect.innerHTML = '<option value="">Erreur de chargement</option>';
-                    errorDiv.textContent = 'Erreur: ' + (data.error || 'Impossible de charger les cryptomonnaies');
+                    cryptoSelect.innerHTML = '<option value="">Loading error</option>';
+                    errorDiv.textContent = 'Error: ' + (data.error || 'Unable to load cryptocurrencies');
                     errorDiv.classList.add('show');
                 }
             } catch (error) {
-                cryptoSelect.innerHTML = '<option value="">Erreur de chargement</option>';
-                errorDiv.textContent = 'Erreur: ' + error.message;
+                cryptoSelect.innerHTML = '<option value="">Loading error</option>';
+                errorDiv.textContent = 'Error: ' + error.message;
                 errorDiv.classList.add('show');
             }
         }
 
-        // Afficher les détails de la crypto sélectionnée
+        // Display selected crypto details
         cryptoSelect.addEventListener('change', function() {
             const selectedOption = this.options[this.selectedIndex];
             if (selectedOption.value) {
@@ -508,13 +518,13 @@
             }
         });
 
-        // Charger les cryptos au chargement de la page
+        // Load cryptos on page load
         loadCryptos();
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            // Afficher le loading
+            // Show loading state
             loading.classList.add('show');
             results.classList.remove('show');
             errorDiv.classList.remove('show');
@@ -522,17 +532,19 @@
             const selectedOption = cryptoSelect.options[cryptoSelect.selectedIndex];
             const cryptoName = selectedOption.value;
             const cryptoSymbol = selectedOption.getAttribute('data-symbol');
+            const timeHorizon = timeHorizonSelect.value;
 
             if (!cryptoName) {
                 loading.classList.remove('show');
-                errorDiv.textContent = 'Veuillez sélectionner une cryptomonnaie';
+                errorDiv.textContent = 'Please select a cryptocurrency';
                 errorDiv.classList.add('show');
                 return;
             }
 
             const formData = {
                 crypto_name: cryptoName,
-                crypto_symbol: cryptoSymbol
+                crypto_symbol: cryptoSymbol,
+                time_horizon: timeHorizon
             };
 
             try {
@@ -551,63 +563,67 @@
                     loading.classList.remove('show');
                     results.classList.add('show');
                 } else {
-                    throw new Error(data.error || 'Une erreur est survenue');
+                    throw new Error(data.error || 'An error occurred');
                 }
             } catch (error) {
                 loading.classList.remove('show');
-                errorDiv.textContent = 'Erreur: ' + error.message;
+                errorDiv.textContent = 'Error: ' + error.message;
                 errorDiv.classList.add('show');
             }
         });
 
         function displayResults(predictions, plots) {
-            // Afficher les cartes de prédiction
+            // Display prediction cards
             const predictionsGrid = document.getElementById('predictionsGrid');
             predictionsGrid.innerHTML = `
                 <div class="prediction-card">
-                    <h3>Catégorie de fonctionnement</h3>
+                    <h3>Behaviour category</h3>
                     <div class="value">${predictions.cluster}</div>
                 </div>
                 <div class="prediction-card">
-                    <h3>Direction</h3>
+                    <h3>Price direction</h3>
                     <div class="value">${predictions.direction}</div>
                     <div class="details">
-                        Hausse: ${predictions.proba_hausse}%<br>
-                        Baisse: ${predictions.proba_baisse}%
+                        Upward: ${predictions.proba_hausse}%<br>
+                        Downward: ${predictions.proba_baisse}%
                     </div>
                 </div>
                 <div class="prediction-card">
-                    <h3>Niveau de vigilance</h3>
+                    <h3>Time horizon</h3>
+                    <div class="value">${predictions.time_horizon}</div>
+                </div>
+                <div class="prediction-card">
+                    <h3>Attention level</h3>
                     <div class="value">${predictions.risk}</div>
                 </div>
                 <div class="prediction-card">
-                    <h3>Prix Prédit</h3>
+                    <h3>Projected price</h3>
                     <div class="value">${predictions.price_predicted.toFixed(4)}</div>
                 </div>
             `;
 
-            // Afficher les graphiques
+            // Display charts
             const plotsContainer = document.getElementById('plotsContainer');
             plotsContainer.innerHTML = `
                 <div class="plot-card">
-                    <h3>Direction du Prix</h3>
-                    <img src="data:image/png;base64,${plots.direction}" alt="Direction">
+                    <h3>Price direction</h3>
+                    <img src="data:image/png;base64,${plots.direction}" alt="Price direction">
                 </div>
                 <div class="plot-card">
-                    <h3>Profils de vigilance</h3>
-                    <img src="data:image/png;base64,${plots.risk}" alt="Profils de vigilance">
+                    <h3>Attention profiles</h3>
+                    <img src="data:image/png;base64,${plots.risk}" alt="Attention profiles">
                 </div>
                 <div class="plot-card">
-                    <h3>Répartition des profils</h3>
-                    <img src="data:image/png;base64,${plots.risk_pie}" alt="Répartition des profils">
+                    <h3>Profile distribution</h3>
+                    <img src="data:image/png;base64,${plots.risk_pie}" alt="Profile distribution">
                 </div>
                 <div class="plot-card">
-                    <h3>Prédiction de Prix</h3>
-                    <img src="data:image/png;base64,${plots.price}" alt="Prix">
+                    <h3>Price projection</h3>
+                    <img src="data:image/png;base64,${plots.price}" alt="Price projection">
                 </div>
                 <div class="plot-card">
-                    <h3>Catégorie attribuée</h3>
-                    <img src="data:image/png;base64,${plots.cluster}" alt="Catégorie attribuée">
+                    <h3>Assigned category</h3>
+                    <img src="data:image/png;base64,${plots.cluster}" alt="Assigned category">
                 </div>
             `;
         }
